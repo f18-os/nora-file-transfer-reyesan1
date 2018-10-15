@@ -8,8 +8,8 @@ from threading import Thread
 import time
 
 switchesVarDefaults = (
-    (('-s', '--server'), 'server', "localhost:50001"),
-    #(('-s', '--server'), 'server', "localhost:50000"),
+   # (('-s', '--server'), 'server', "localhost:50001"),
+    (('-s', '--server'), 'server', "localhost:50000"),
     (('-d', '--debug'), "debug", False), # boolean (set if present)
     (('-?', '--usage'), "usage", False), # boolean (set if present)
     )
@@ -63,17 +63,13 @@ class ClientThread(Thread):
 
        fs = FramedStreamSock(s, debug=debug)
 
-        # Staring client, asking until user wants to quit
+       # I recycled the code from my old fileClient. This code only runs once. I did not want to have to
+       # deal with the indenting, so I just made usrInput = 'q' at the end.
        usrInput = ''
        while usrInput is not 'q':
-           # Asking user for input file and put command
-           usrInput = input("Entering 'put' and a filename will allow you to transfer a file\n:")
-           # Splitting input by space to check if put command and filename is present
-           splitInput = usrInput.split(' ')
-           if splitInput[0].strip() == 'put':
-               usrFileName = splitInput[-1]
-               # Try to open file, if not, print that file not found and loop again for input
                try:
+                   # Again, I recycled the code, and just made the file to send (utep.txt) the usrFileName
+                   usrFileName = "utep.txt"
                    fileToSend = open(usrFileName, 'rb')
 
                    # Starting message, to pass in file name and start message (header)
@@ -106,25 +102,16 @@ class ClientThread(Thread):
 
                    # Sending the end signal to know that the file is done sending
                    fs.sendmsg(b"~fInIs")
-                   recMessage = fs.receivemsg()
-                   if recMessage:
-                       print("received:", recMessage.decode())
+                   # Ending while loop
+                   usrInput = 'q'
 
                # Match enclosing try
                except FileNotFoundError:
                    print("Wrong file or file path")
                    continue
-               #print("sending file %s" % (usrFileName))
 
-           # Else for enclosing userInput if statement
-           elif usrInput.strip() == 'q':
-               print("Exiting")
-               sys.exit(0)
 
-           else:
-               print("Invalid please try again, enter 'q' to exit")
-
-#for i in range(100):
-for i in range(1):
+# Running 100 clients
+for i in range(100):
     ClientThread(serverHost, serverPort, debug)
 
