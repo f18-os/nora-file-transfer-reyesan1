@@ -30,18 +30,50 @@ class ServerThread(Thread):
         self.fsock, self.debug = FramedStreamSock(sock, debug), debug
         self.start()
     def run(self):
+        cwd = os.getcwd()
+        fileName = ''
+        while fileName == '':
+            # Recieve filename and
+            headerPayload = self.fsock.receivemsg()
+            if headerPayload:
+                pl = headerPayload.decode().split()
+            if b'start' in headerPayload:
+                fileName = pl[-1]
+                if not os.path.exists(cwd + '/serverDirectory/'):
+                    os.makedirs(cwd + '/serverDirectory')
+                    # fileOpen = open(fileName, 'wb+')
+                fileOpen = open(os.path.join(cwd + '/serverDirectory/', fileName), 'wb+')
+                fileOpen.close()
+                break
         while True:
-            msg = self.fsock.receivemsg()
-            if not msg:
+            payload = self.fsock.receivemsg()
+            if not payload:
                 if self.debug: print(self.fsock, "server thread done")
                 return
             requestNum = ServerThread.requestCount
             time.sleep(0.001)
             ServerThread.requestCount = requestNum + 1
-            msg = ("%s! (%d)" % (msg, requestNum)).encode()
-            self.fsock.sendmsg(msg)
+            #msg = ("%s! (%d)" % (msg, requestNum)).encode()
+            #     print("payload is: %s " % payload)
+            payload = payload.decode().replace('~`', '\n')
+            if debug: print("rec'd: ", payload)
+            fileOpen = open(cwd + '/serverDirectory/%s' % fileName, 'a')
+            try:
+                if '~fInIs' in payload:
+                    fileOpen.close()
+                    success = b"File finished sending"
+                    # print(success)
+                    self.fsock.sendmsg(success)
+                    sys.exit(0)
+                else:
+                    fileOpen.write(payload)
+                    # framedSend(sock, payload, debug)
+            except FileNotFoundError:
+                print("Error trying to receive file")
+
 
 
 while True:
     sock, addr = lsock.accept()
+
     ServerThread(sock, debug)
